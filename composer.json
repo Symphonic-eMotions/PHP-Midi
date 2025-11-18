@@ -1,0 +1,21 @@
+{
+  "name": "symphonic-emotions/php-midi",
+  "description": "PHP library to parse MIDI files (tempo, time signature, etc.)",
+  "type": "library",
+  "license": "WTFPL",
+  "autoload": {
+    "psr-4": {
+      "symphonic-emotions\\PhpMidi\\": "src/"
+    }
+  },
+  "require": {
+    "php": ">=8.0"
+  },
+  "minimum-stability": "stable",
+  "authors": [
+    {
+      "name": "Your Name",
+      "email": "you@example.com"
+    }
+  ]
+}
