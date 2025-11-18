@@ -23,6 +23,12 @@ class Midi
     var $type;            // SMF type 0 or 1 (0=only a single track)
     var $throwFlag;       // wether to throw exception on error (only PHP5+)
 
+    // XML parsing state (added to avoid dynamic properties deprecation on PHP 8.2+)
+    var $evt = array();
+    var $atr = array();
+    var $dat = '';
+    var $xml_parser;
+    var $ttype;
 
     /****************************************************************************
      *                                                                           *
