@@ -498,23 +498,37 @@ class Midi
 // import MIDI XML representation
 // (so far only a subset of http://www.musicxml.org/dtds/midixml.dtd (v0.8), see documentation)
 //---------------------------------------------------------------
-    function importXml($xmlStr)
-    {
+    function importXml($xmlStr){
         $this->evt = array();
         $this->atr = array();
         $this->dat = '';
         $this->open();
 
+        // Maak de parser
         $this->xml_parser = xml_parser_create("ISO-8859-1");
-        xml_set_object($this->xml_parser, $this);
-        xml_set_element_handler($this->xml_parser, "_startElement", "_endElement");
-        xml_set_character_data_handler($this->xml_parser, "_chData");
-        if (!xml_parse($this->xml_parser, $xmlStr, TRUE))
-            die(sprintf("XML error: %s at line %d", xml_error_string(xml_get_error_code($this->xml_parser)), xml_get_current_line_number($this->xml_parser)));
+
+        // ✅ Geen xml_set_object meer; gebruik directe callables
+        xml_set_element_handler(
+            $this->xml_parser,
+            array($this, '_startElement'),
+            array($this, '_endElement')
+        );
+
+        xml_set_character_data_handler(
+            $this->xml_parser,
+            array($this, '_chData')
+        );
+
+        if (!xml_parse($this->xml_parser, $xmlStr, true)) {
+            die(sprintf(
+                "XML error: %s at line %d",
+                xml_error_string(xml_get_error_code($this->xml_parser)),
+                xml_get_current_line_number($this->xml_parser)
+            ));
+        }
+
         xml_parser_free($this->xml_parser);
     }
-
-
 
 //---------------------------------------------------------------
 // imports Standard MIDI File (typ 0 or 1) (and RMID)
