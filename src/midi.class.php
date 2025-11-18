@@ -21,12 +21,12 @@ class Midi
     var $tempo;           //tempo as integer (0 for unknown)
     var $tempoMsgNum;     //position of tempo event in track 0
     var $type;            // SMF type 0 or 1 (0=only a single track)
-    var $throwFlag;       // wether to throw exception on error (only PHP5+)
+    var bool $throwFlag;       // wether to throw exception on error (only PHP5+)
 
     // XML parsing state (added to avoid dynamic properties deprecation on PHP 8.2+)
     var $evt = array();
     var $atr = array();
-    var $dat = '';
+    var string $dat = '';
     var $xml_parser;
     var $ttype;
 
@@ -47,7 +47,7 @@ class Midi
 //---------------------------------------------------------------
 // creates (or resets to) new empty MIDI song
 //---------------------------------------------------------------
-    function open($timebase = 480)
+    function open($timebase = 480): void
     {
         $this->tempo = 0;//125000 = 120 bpm
         $this->timebase = $timebase;
@@ -57,7 +57,7 @@ class Midi
 //---------------------------------------------------------------
 // sets tempo by replacing set tempo msg in track 0 (or adding new track 0)
 //---------------------------------------------------------------
-    function setTempo($tempo)
+    function setTempo($tempo): void
     {
         $tempo = round($tempo);
         if (isset($this->tempoMsgNum)) $this->tracks[0][$this->tempoMsgNum] = "0 Tempo $tempo";
@@ -80,7 +80,7 @@ class Midi
 //---------------------------------------------------------------
 // sets tempo corresponding to given bpm
 //---------------------------------------------------------------
-    function setBpm($bpm)
+    function setBpm($bpm): void
     {
         $tempo = round(60000000 / $bpm);
         $this->setTempo($tempo);
@@ -89,7 +89,7 @@ class Midi
 //---------------------------------------------------------------
 // returns bpm corresponding to tempo
 //---------------------------------------------------------------
-    function getBpm()
+    function getBpm(): int
     {
         return ($this->tempo != 0) ? (int)(60000000 / $this->tempo) : 0;
     }
@@ -112,9 +112,9 @@ class Midi
 //---------------------------------------------------------------
 // adds new track, returns new track count
 //---------------------------------------------------------------
-    function newTrack()
+    function newTrack(): int
     {
-        array_push($this->tracks, array());
+        $this->tracks[] = array();
         return count($this->tracks);
     }
 
@@ -222,19 +222,30 @@ class Midi
 //---------------------------------------------------------------
 // transposes track $tn by $dn half tone steps
 //---------------------------------------------------------------
-    function transposeTrack($tn, $dn)
-    {
+    function transposeTrack($tn, $dn) {
         $track = $this->tracks[$tn];
         $mc = count($track);
+
         for ($i = 0; $i < $mc; $i++) {
             $msg = explode(' ', $track[$i]);
-            if ($msg[1] == 'On' || $msg[1] == 'Off') {
-                eval("\$" . $msg[3] . ';'); // $n
+
+            if ($msg[1] === 'On' || $msg[1] === 'Off') {
+
+                // Haal n=60 uit de msg
+                $parts = explode('=', $msg[3]); // ["n", "60"]
+                $n = (int)$parts[1];
+
+                // Transpose
                 $n = max(0, min(127, $n + $dn));
+
+                // Bouw het argument opnieuw op
                 $msg[3] = "n=$n";
-                $track[$i] = join(' ', $msg);
+
+                // Zet deze regel terug
+                $track[$i] = implode(' ', $msg);
             }
         }
+
         $this->tracks[$tn] = $track;
     }
 
@@ -298,7 +309,7 @@ class Midi
             $track = $this->_delta2Absolute($track);
         }
 
-        $tn = isset($tn) ? $tn : count($this . tracks);
+        $tn = isset($tn) ? $tn : count($this->tracks);
         $this->tracks[$tn] = $track;
         if ($tn == 0) $this->_findTempo();
     }
@@ -306,7 +317,7 @@ class Midi
 //---------------------------------------------------------------
 // returns MIDI song as text
 //---------------------------------------------------------------
-    function getTxt($ttype = 0)
+    function getTxt($ttype = 0): string
     { //0:absolute, 1:delta
         $timebase = $this->timebase;
         $tracks = $this->tracks;
@@ -320,7 +331,7 @@ class Midi
 //---------------------------------------------------------------
 // returns track as text
 //---------------------------------------------------------------
-    function getTrackTxt($tn, $ttype = 0)
+    function getTrackTxt($tn, $ttype = 0): string
     { //0:absolute, 1:delta
         $track = $this->tracks[$tn];
         $str = "MTrk\n";
@@ -377,42 +388,48 @@ class Midi
 
                 switch ($msg[1]) {
                     case 'PrCh':
-                        eval("\$" . $msg[2] . ';'); // $ch
-                        eval("\$" . $msg[3] . ';'); // $p
+                        $args = $this->_parseEventArgs($msg);
+                        $ch = isset($args['ch']) ? (int)$args['ch'] : 1;
+                        $p  = isset($args['p'])  ? (int)$args['p']  : 0;
                         $xml .= "<ProgramChange Channel=\"$ch\" Number=\"$p\"/>\n";
                         break;
 
                     case 'On':
                     case 'Off':
-                        eval("\$" . $msg[2] . ';'); // $ch
-                        eval("\$" . $msg[3] . ';'); // $n
-                        eval("\$" . $msg[4] . ';'); // $v
+                        $args = $this->_parseEventArgs($msg);
+                        $ch = isset($args['ch']) ? (int)$args['ch'] : 1;
+                        $n  = isset($args['n'])  ? (int)$args['n']  : 0;
+                        $v  = isset($args['v'])  ? (int)$args['v']  : 0;
                         $xml .= "<Note{$msg[1]} Channel=\"$ch\" Note=\"$n\" Velocity=\"$v\"/>\n";
                         break;
 
                     case 'PoPr':
-                        eval("\$" . $msg[2] . ';'); // $ch
-                        eval("\$" . $msg[3] . ';'); // $n
-                        eval("\$" . $msg[4] . ';'); // $v
+                        $args = $this->_parseEventArgs($msg);
+                        $ch = isset($args['ch']) ? (int)$args['ch'] : 1;
+                        $n  = isset($args['n'])  ? (int)$args['n']  : 0;
+                        $v  = isset($args['v'])  ? (int)$args['v']  : 0;
                         $xml .= "<PolyKeyPressure Channel=\"$ch\" Note=\"$n\" Pressure=\"$v\"/>\n";
                         break;
 
                     case 'Par':
-                        eval("\$" . $msg[2] . ';'); // ch
-                        eval("\$" . $msg[3] . ';'); // c
-                        eval("\$" . $msg[4] . ';'); // v
+                        $args = $this->_parseEventArgs($msg);
+                        $ch = isset($args['ch']) ? (int)$args['ch'] : 1;
+                        $c  = isset($args['c'])  ? (int)$args['c']  : 0;
+                        $v  = isset($args['v'])  ? (int)$args['v']  : 0;
                         $xml .= "<ControlChange Channel=\"$ch\" Control=\"$c\" Value=\"$v\"/>\n";
                         break;
 
                     case 'ChPr':
-                        eval("\$" . $msg[2] . ';'); // ch
-                        eval("\$" . $msg[3] . ';'); // v
+                        $args = $this->_parseEventArgs($msg);
+                        $ch = isset($args['ch']) ? (int)$args['ch'] : 1;
+                        $v  = isset($args['v'])  ? (int)$args['v']  : 0;
                         $xml .= "<ChannelKeyPressure Channel=\"$ch\" Pressure=\"$v\"/>\n";
                         break;
 
                     case 'Pb':
-                        eval("\$" . $msg[2] . ';'); // ch
-                        eval("\$" . $msg[3] . ';'); // v
+                        $args = $this->_parseEventArgs($msg);
+                        $ch = isset($args['ch']) ? (int)$args['ch'] : 1;
+                        $v  = isset($args['v'])  ? (int)$args['v']  : 0;
                         $xml .= "<PitchBendChange Channel=\"$ch\" Value=\"$v\"/>\n";
                         break;
 
@@ -776,137 +793,180 @@ class Midi
     }
 
 //---------------------------------------------------------------
+// parses key=value arguments from a message array
+// e.g. ["100", "On", "ch=1", "n=60", "v=100"]
+//      => ["ch" => 1, "n" => 60, "v" => 100]
+//---------------------------------------------------------------
+    function _parseEventArgs(array $msg, $startIndex = 2) {
+        $args = array();
+        $mc = count($msg);
+
+        for ($i = $startIndex; $i < $mc; $i++) {
+            $part = $msg[$i];
+            $eqPos = strpos($part, '=');
+
+            if ($eqPos === false) {
+                continue;
+            }
+
+            $key = substr($part, 0, $eqPos);
+            $value = substr($part, $eqPos + 1);
+
+            // lege waarde → 0
+            if ($value === '') {
+                $value = 0;
+            }
+
+            // probeer numeriek te casten
+            if (is_numeric($value)) {
+                $value = (int) $value;
+            }
+
+            $args[$key] = $value;
+        }
+
+        return $args;
+    }
+
+//---------------------------------------------------------------
 // returns binary code for message string
 //---------------------------------------------------------------
-    function _getMsgStr($line)
-    {
-        $msg = explode(' ', $line);
-        switch ($msg[1]) {
+    function _getMsgStr($line){
+        $msg = explode(' ',$line);
+
+        switch($msg[1]){
             case 'PrCh': // 0x0C
-                eval("\$" . $msg[2] . ';'); // chan
-                eval("\$" . $msg[3] . ';'); // prog
+                $args = $this->_parseEventArgs($msg);
+                $ch = isset($args['ch']) ? (int)$args['ch'] : 1;
+                $p  = isset($args['p'])  ? (int)$args['p']  : 0;
                 return chr(0xC0 + $ch - 1) . chr($p);
-                break;
+
             case 'On': // 0x09
-                eval("\$" . $msg[2] . ';'); // chan
-                eval("\$" . $msg[3] . ';'); // note
-                eval("\$" . $msg[4] . ';'); // vel
+                $args = $this->_parseEventArgs($msg);
+                $ch = isset($args['ch']) ? (int)$args['ch'] : 1;
+                $n  = isset($args['n'])  ? (int)$args['n']  : 0;
+                $v  = isset($args['v'])  ? (int)$args['v']  : 0;
                 return chr(0x90 + $ch - 1) . chr($n) . chr($v);
-                break;
+
             case 'Off': // 0x08
-                eval("\$" . $msg[2] . ';'); // chan
-                eval("\$" . $msg[3] . ';'); // note
-                eval("\$" . $msg[4] . ';'); // vel
+                $args = $this->_parseEventArgs($msg);
+                $ch = isset($args['ch']) ? (int)$args['ch'] : 1;
+                $n  = isset($args['n'])  ? (int)$args['n']  : 0;
+                $v  = isset($args['v'])  ? (int)$args['v']  : 0;
                 return chr(0x80 + $ch - 1) . chr($n) . chr($v);
-                break;
+
             case 'PoPr': // 0x0A = PolyPressure
-                eval("\$" . $msg[2] . ';'); // chan
-                eval("\$" . $msg[3] . ';'); // note
-                eval("\$" . $msg[4] . ';'); // val
+                $args = $this->_parseEventArgs($msg);
+                $ch = isset($args['ch']) ? (int)$args['ch'] : 1;
+                $n  = isset($args['n'])  ? (int)$args['n']  : 0;
+                $v  = isset($args['v'])  ? (int)$args['v']  : 0;
                 return chr(0xA0 + $ch - 1) . chr($n) . chr($v);
-                break;
+
             case 'Par': // 0x0B = ControllerChange
-                eval("\$" . $msg[2] . ';'); // chan
-                eval("\$" . $msg[3] . ';'); // controller
-                eval("\$" . $msg[4] . ';'); // val
+                $args = $this->_parseEventArgs($msg);
+                $ch = isset($args['ch']) ? (int)$args['ch'] : 1;
+                $c  = isset($args['c'])  ? (int)$args['c']  : 0;
+                $v  = isset($args['v'])  ? (int)$args['v']  : 0;
                 return chr(0xB0 + $ch - 1) . chr($c) . chr($v);
-                break;
+
             case 'ChPr': // 0x0D = ChannelPressure
-                eval("\$" . $msg[2] . ';'); // chan
-                eval("\$" . $msg[3] . ';'); // val
+                $args = $this->_parseEventArgs($msg);
+                $ch = isset($args['ch']) ? (int)$args['ch'] : 1;
+                $v  = isset($args['v'])  ? (int)$args['v']  : 0;
                 return chr(0xD0 + $ch - 1) . chr($v);
-                break;
+
             case 'Pb': // 0x0E = PitchBend
-                eval("\$" . $msg[2] . ';'); // chan
-                eval("\$" . $msg[3] . ';'); // val (2 Bytes!)
-                $a = $v & 0x7f; // Bits 0..6
-                $b = ($v >> 7) & 0x7f; // Bits 7..13
+                $args = $this->_parseEventArgs($msg);
+                $ch = isset($args['ch']) ? (int)$args['ch'] : 1;
+                $v  = isset($args['v'])  ? (int)$args['v']  : 0;
+                $a = $v & 0x7f;          // Bits 0..6
+                $b = ($v >> 7) & 0x7f;   // Bits 7..13
                 return chr(0xE0 + $ch - 1) . chr($a) . chr($b);
-                break;
+
             // META EVENTS
             case 'Seqnr': // 0x00 = sequence_number
                 $num = chr($msg[2]);
-                if ($msg[2] > 255) $this->_err("code broken around Seqnr event");
+                if ($msg[2]>255) $this->_err("code broken around Seqnr event");
                 return "\xFF\x00\x02\x00$num";
-                break;
+
             case 'Meta':
                 $type = $msg[2];
-                switch ($type) {
-                    case 'Text': //0x01: // Meta Text
-                    case 'Copyright': //0x02: // Meta Copyright
-                    case 'TrkName': //0x03: // Meta TrackName ???SeqName???
-                    case 'InstrName': //0x04: // Meta InstrumentName
-                    case 'Lyric': //0x05: // Meta Lyrics
-                    case 'Marker': //0x06: // Meta Marker
-                    case 'Cue': //0x07: // Meta Cue
-                        $texttypes = array('Text', 'Copyright', 'TrkName', 'InstrName', 'Lyric', 'Marker', 'Cue');
-                        $byte = chr(array_search($type, $texttypes) + 1);
-                        $start = strpos($line, '"') + 1;
-                        $end = strrpos($line, '"');
-                        $txt = substr($line, $start, $end - $start);
+                switch ($type){
+                    case 'Text':      //0x01
+                    case 'Copyright': //0x02
+                    case 'TrkName':   //0x03
+                    case 'InstrName': //0x04
+                    case 'Lyric':     //0x05
+                    case 'Marker':    //0x06
+                    case 'Cue':       //0x07
+                        $texttypes = array('Text','Copyright','TrkName','InstrName','Lyric','Marker','Cue');
+                        $byte = chr(array_search($type,$texttypes)+1);
+                        $start = strpos($line,'"')+1;
+                        $end = strrpos($line,'"');
+                        $txt = substr($line,$start,$end-$start);
                         $len = $this->_writeVarLen(strlen($txt)); // NEW
                         return "\xFF$byte$len$txt";
-                        break;
+
                     case 'TrkEnd': //0x2F
                         return "\xFF\x2F\x00";
-                        break;
-                    case '0x20': // 0x20 = ChannelPrefix
+
+                    case '0x20': // ChannelPrefix
                         $v = chr($msg[3]);
                         return "\xFF\x20\x01$v";
-                        break;
-                    case '0x21': // 0x21 = ChannelPrefixOrPort
+
+                    case '0x21': // ChannelPrefixOrPort
                         $v = chr($msg[3]);
                         return "\xFF\x21\x01$v";
-                        break;
+
                     default:
                         $this->_err("unknown meta event: $type");
                         exit();
                 }
-                break;
+
             case 'Tempo': // 0x51
-                $tempo = $this->_getBytes((int)$msg[2], 3);
+                $tempo = $this->_getBytes((int)$msg[2],3);
                 return "\xFF\x51\x03$tempo";
-                break;
+
             case 'SMPTE': // 0x54 = SMPTE offset
-                $h = chr($msg[2]);
-                $m = chr($msg[3]);
-                $s = chr($msg[4]);
-                $f = chr($msg[5]);
+                $h  = chr($msg[2]);
+                $m  = chr($msg[3]);
+                $s  = chr($msg[4]);
+                $f  = chr($msg[5]);
                 $fh = chr($msg[6]);
                 return "\xFF\x54\x05$h$m$s$f$fh";
-                break;
+
             case 'TimeSig': // 0x58
-                $zt = explode('/', $msg[2]);
-                $z = chr($zt[0]);
-                $t = chr(log($zt[1]) / log(2));
+                $zt = explode('/',$msg[2]);
+                $z  = chr($zt[0]);
+                $t  = chr(log($zt[1])/log(2));
                 $mc = chr($msg[3]);
-                $c = chr($msg[4]);
+                $c  = chr($msg[4]);
                 return "\xFF\x58\x04$z$t$mc$c";
-                break;
+
             case 'KeySig': // 0x59
                 $vz = chr($msg[2]);
-                $g = chr(($msg[3] == 'major') ? 0 : 1);
+                $g  = chr(($msg[3]=='major')?0:1);
                 return "\xFF\x59\x02$vz$g";
-                break;
+
             case 'SeqSpec': // 0x7F = Sequencer specific data (Bs: 0 SeqSpec 00 00 41)
-                $cnt = count($msg) - 2;
+                $cnt = count($msg)-2;
                 $data = '';
-                for ($i = 0; $i < $cnt; $i++)
-                    $data .= $this->_hex2bin($msg[$i + 2]);
+                for ($i=0;$i<$cnt;$i++) {
+                    $data .= $this->_hex2bin($msg[$i+2]);
+                }
                 $len = $this->_writeVarLen(strlen($data)); // NEW
                 return "\xFF\x7F$len$data";
-                break;
+
             case 'SysEx': // 0xF0 = SysEx
-                $start = strpos($line, 'f0');
-                $end = strrpos($line, 'f7');
-                $data = substr($line, $start + 3, $end - $start - 1);
-                $data = $this->_hex2bin(str_replace(' ', '', $data));
-                $len = chr(strlen($data));
-                return "\xF0$len" . $data;
-                break;
+                $start = strpos($line,'f0');
+                $end   = strrpos($line,'f7');
+                $data  = substr($line,$start+3,$end-$start-1);
+                $data  = $this->_hex2bin(str_replace(' ','',$data));
+                $len   = chr(strlen($data));
+                return "\xF0$len".$data;
 
             default:
-                @$this->_err('unknown event: ' . $msg[1]);
+                @$this->_err('unknown event: '.$msg[1]);
                 exit();
         }
     }
@@ -1039,7 +1099,6 @@ class Midi
                                 case 0x2F: // Meta TrkEnd
                                     $track[] = "$time Meta TrkEnd";
                                     return $track;//ignore rest
-                                    break;
                                 case 0x51: // Tempo
                                     $tempo = ord($binStr[$p + 3]) * 256 * 256 + ord($binStr[$p + 4]) * 256 + ord($binStr[$p + 5]);
                                     $track[] = "$time Tempo $tempo";
