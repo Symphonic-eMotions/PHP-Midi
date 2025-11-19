@@ -6,7 +6,14 @@
   "autoload": {
     "psr-4": {
       "symphonic-emotions\\PhpMidi\\": "src/"
-    }
+    },
+    "classmap": [
+      "src/midi.class.php",
+      "src/midi_duration.class.php",
+      "src/midi_conversion.class.php",
+      "src/midi_trim.class.php",
+      "src/midi_volume.class.php"
+    ]
   },
   "require": {
     "php": ">=8.0"
