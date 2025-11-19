@@ -1,43 +1,67 @@
 <?php
-//require('midi.class.php');
 
-class MidiTrim extends Midi{
-	
-	//---------------------------------------------------------------
-	// trims song to section from $from to $to (or to the end, if $to is omitted)
-	//---------------------------------------------------------------
-	function trimSong($from=0, $to=false){
-	  $tc = count($this->tracks);
-	  for ($i=0;$i<$tc;$i++) $this->trimTrack($i, $from, $to);
-	}
-	
-	//---------------------------------------------------------------
-	// trims track to section from $from to $to (or to the end, if $to is omitted)
-	//---------------------------------------------------------------
-	function trimTrack($tn, $from=0, $to=false){
-	  $track = $this->tracks[$tn];
-	  $new = array();
-	  foreach ($track as $msgStr){
-	    $msg = explode(' ',$msgStr);
-	    $t = (int)$msg[0];
-	    if ($t==0)
-	    	$new[] = $msgStr;
-	    elseif (($t>=$from && ($t<=$to||$to===false))){
-	      $msg[0] = $t-$from;
-	      $new[] = join(' ',$msg);
-	    }
-	  }
-	  if ($to) $new[] = ($to-$from).' Meta TrkEnd'; // bug-fix!
-	  $this->tracks[$tn] = $new;
-	}
-	
-	function timestamp2seconds($ts){
-		 return $ts * $midi->getTempo() / $midi->getTimebase() / 1000000;
+declare(strict_types=1);
 
-	}
-	function seconds2timestamp($sec){
-		return (int)($sec * 1000000 * $this->getTimebase() / $this->getTempo());
-	}
+class MidiTrim extends Midi
+{
+    /**
+     * Trim entire song between two timestamps
+     */
+    public function trimSong(int $from = 0, int|false $to = false): void
+    {
+        $trackCount = count($this->tracks);
 
+        for ($i = 0; $i < $trackCount; $i++) {
+            $this->trimTrack($i, $from, $to);
+        }
+    }
+
+    /**
+     * Trim a single track
+     */
+    public function trimTrack(int $tn, int $from = 0, int|false $to = false): void
+    {
+        $track = $this->tracks[$tn];
+        $new = [];
+
+        foreach ($track as $msgStr) {
+            $msg = explode(' ', $msgStr);
+            $time = (int) $msg[0];
+
+            // Always preserve time=0 metadata
+            if ($time === 0) {
+                $new[] = $msgStr;
+                continue;
+            }
+
+            // Keep messages inside window
+            if ($time >= $from && ($to === false || $time <= $to)) {
+                $msg[0] = $time - $from;
+                $new[] = implode(' ', $msg);
+            }
+        }
+
+        // Add TrkEnd at end if $to specified
+        if ($to !== false) {
+            $new[] = ($to - $from) . ' Meta TrkEnd';
+        }
+
+        $this->tracks[$tn] = $new;
+    }
+
+    /**
+     * Convert timestamp (ticks) to seconds
+     */
+    public function timestamp2seconds(int $ts): float
+    {
+        return $ts * ($this->getTempo() / $this->getTimebase()) / 1_000_000;
+    }
+
+    /**
+     * Convert seconds to timestamp (ticks)
+     */
+    public function seconds2timestamp(float $sec): int
+    {
+        return (int) round($sec * 1_000_000 * $this->getTimebase() / $this->getTempo());
+    }
 }
-?>

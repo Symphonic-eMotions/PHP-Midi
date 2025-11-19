@@ -3,6 +3,8 @@
 require __DIR__ . '/src/midi.class.php';
 require __DIR__ . '/src/midi_duration.class.php';
 require __DIR__ . '/src/midi_conversion.class.php';
+require __DIR__ . '/src/midi_trim.class.php';
+require __DIR__ . '/src/midi_volume.class.php';
 
 echo "<pre>";
 
@@ -204,6 +206,43 @@ echo "Type-0 tekst (eerste 10 regels):\n";
 foreach (array_slice($type0Lines, 0, 10) as $l) {
     echo $l . "\n";
 }
+
+echo "\n== Extra: MidiTrim ==\n";
+
+$trim = new MidiTrim();
+$trim->importMid($sourceMid);
+
+$originalTrackCount = $trim->getTrackCount();
+$originalTxt = $trim->getTrackTxt(0);
+
+$trim->trimSong(1000, 5000);
+
+echo "Tracks: $originalTrackCount\n";
+echo "Track 0 lengte vóór: " . strlen($originalTxt) . "\n";
+echo "Track 0 lengte ná trim: " . strlen($trim->getTrackTxt(0)) . "\n";
+
+echo "timestamp2seconds(480): " . $trim->timestamp2seconds(480) . "\n";
+echo "seconds2timestamp(1.0): " . $trim->seconds2timestamp(1.0) . "\n";
+
+
+echo "\n== Extra: MidiVolume ==\n";
+
+$vol = new MidiVolume();
+$vol->importMid($sourceMid);
+
+$before = $vol->getVolumes();
+$vol->setGlobalVolume(80);
+$after = $vol->getVolumes();
+
+echo "Volume voor setGlobalVolume():\n";
+print_r($before);
+
+echo "Volume na setGlobalVolume(80):\n";
+print_r($after);
+
+$vol->setChannelVolume(3, 40);
+echo "Na setChannelVolume(3, 40):\n";
+print_r($vol->getVolumes());
 
 
 echo "</pre>";
