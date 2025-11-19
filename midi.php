@@ -181,6 +181,29 @@ $durationSeconds = $durationMidi->getDuration();
 $durationRounded = round($durationSeconds, 2);
 
 echo "Duur (seconden): " . $durationRounded . "\n";
-echo "Duur (mm:ss): " . gmdate('i:s', (int) round($durationSeconds)) . "\n";
+echo "Duur (mm:ss): " . gmdate('i:s', (int) round($durationSeconds)) . "\n\n";
+
+echo "\n== Extra: MidiConversion ==\n";
+
+$convMidi = new MidiConversion();
+$convMidi->importMid($sourceMid);
+
+// Voor / na track-aantallen bekijken
+$tracksBefore = $convMidi->getTrackCount();
+$convMidi->convertToType0();
+$tracksAfter  = $convMidi->getTrackCount();
+
+echo "Tracks vóór convertToType0(): $tracksBefore\n";
+echo "Tracks ná  convertToType0(): $tracksAfter\n";
+
+// Kleine preview van de geconverteerde type-0 tekst
+$type0Txt = $convMidi->getTxt(0);
+$type0Lines = explode("\n", $type0Txt);
+
+echo "Type-0 tekst (eerste 10 regels):\n";
+foreach (array_slice($type0Lines, 0, 10) as $l) {
+    echo $l . "\n";
+}
+
 
 echo "</pre>";
