@@ -145,16 +145,6 @@ $outFile = __DIR__ . '/output-test.mid';
 $midi->saveMidFile($outFile);
 echo "saveMidFile() geschreven naar: $outFile\n\n";
 
-// 8. playMidFile / downloadMidFile (alleen als voorbeeld in commentaar)
-// LET OP: onderstaande methodes doen output + headers + exit(), dus NIET echt aanroepen
-echo "== Stap 8: playMidFile / downloadMidFile (voorbeeld-code, NIET uitgevoerd) ==\n";
-
-// Voorbeeld (UITGESCHAKELD):
-// $midi->playMidFile('output-test.mid', true, true, true, 'default');
-
-// Voorbeeld (UITGESCHAKELD):
-// $midi->downloadMidFile('download.mid'); // stuurt headers en roept exit()
-
 echo "Deze methodes zijn alleen in commentaar gezet omdat ze de uitvoer/headers beïnvloeden.\n\n";
 
 // 9. Utility-lijsten: getInstrumentList / getDrumset / getDrumkitList / getNoteList
@@ -173,14 +163,24 @@ foreach (array_slice($drumset, 0, 5, true) as $note => $name) {
 
 $drumkits = $midi->getDrumkitList();
 echo "getDrumkitList(): " . count($drumkits) . " kits.\n";
+echo "getDrumkitList(): " . count($drumkits) . " kits.\n";
 foreach ($drumkits as $prog => $name) {
     echo "    Program $prog => $name\n";
 }
 
 $noteList = $midi->getNoteList();
 echo "getNoteList(): " . count($noteList) . " noten.\n";
-echo "  Eerste 12: " . implode(', ', array_slice($noteList, 0, 12)) . "\n";
+echo "  Eerste 12: " . implode(', ', array_slice($noteList, 0, 12)) . "\n\n";
 
-echo "\n== Klaar. Alle publieke methoden zijn geraakt (op downloadMidFile/playMidFile na, die staan als voorbeeld in commentaar). ==\n";
+echo "== Extra: MidiDuration ==\n";
+
+$durationMidi = new MidiDuration();
+$durationMidi->importMid($sourceMid);
+
+$durationSeconds = $durationMidi->getDuration();
+$durationRounded = round($durationSeconds, 2);
+
+echo "Duur (seconden): " . $durationRounded . "\n";
+echo "Duur (mm:ss): " . gmdate('i:s', (int) round($durationSeconds)) . "\n";
 
 echo "</pre>";

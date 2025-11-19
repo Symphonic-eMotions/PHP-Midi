@@ -97,7 +97,7 @@ class Midi
 //---------------------------------------------------------------
 // sets timebase
 //---------------------------------------------------------------
-    function setTimebase($tb)
+    function setTimebase($tb): void
     {
         $this->timebase = $tb;
     }
@@ -129,7 +129,7 @@ class Midi
 //---------------------------------------------------------------
 // returns number of messages of track $tn
 //---------------------------------------------------------------
-    function getMsgCount($tn)
+    function getMsgCount($tn): int
     {
         return count($this->tracks[$tn]);
     }
@@ -137,7 +137,7 @@ class Midi
 //---------------------------------------------------------------
 // adds message to end of track $tn
 //---------------------------------------------------------------
-    function addMsg($tn, $msgStr, $ttype = 0)
+    function addMsg($tn, $msgStr, $ttype = 0): void
     { //0:absolute, 1:delta
         $track = $this->tracks[$tn];
 
@@ -156,7 +156,7 @@ class Midi
 //---------------------------------------------------------------
 // adds message at adequate position of track $n (slower than addMsg)
 //---------------------------------------------------------------
-    function insertMsg($tn, $msgStr)
+    function insertMsg($tn, $msgStr): void
     {
         $time = $this->_getTime($msgStr);
         $track = $this->tracks[$tn];
@@ -179,7 +179,7 @@ class Midi
 //---------------------------------------------------------------
 // deletes message number $mn of track $tn
 //---------------------------------------------------------------
-    function deleteMsg($tn, $mn)
+    function deleteMsg($tn, $mn): void
     {
         array_splice($this->tracks[$tn], $mn, 1);
     }
@@ -187,7 +187,7 @@ class Midi
 //---------------------------------------------------------------
 // deletes track $tn
 //---------------------------------------------------------------
-    function deleteTrack($tn)
+    function deleteTrack($tn): int
     {
         array_splice($this->tracks, $tn, 1);
         return count($this->tracks);
@@ -196,7 +196,7 @@ class Midi
 //---------------------------------------------------------------
 // returns number of tracks
 //---------------------------------------------------------------
-    function getTrackCount()
+    function getTrackCount(): int
     {
         return count($this->tracks);
     }
@@ -204,7 +204,7 @@ class Midi
 //---------------------------------------------------------------
 // deletes all tracks except track $tn (and $track 0 which contains tempo info)
 //---------------------------------------------------------------
-    function soloTrack($tn)
+    function soloTrack($tn): void
     {
         if ($tn == 0) $this->tracks = array($this->tracks[0]);
         else $this->tracks = array($this->tracks[0], $this->tracks[$tn]);
@@ -213,7 +213,7 @@ class Midi
 //---------------------------------------------------------------
 // transposes song by $dn half tone steps
 //---------------------------------------------------------------
-    function transpose($dn)
+    function transpose($dn): void
     {
         $tc = count($this->tracks);
         for ($i = 0; $i < $tc; $i++) $this->transposeTrack($i, $dn);
@@ -222,7 +222,8 @@ class Midi
 //---------------------------------------------------------------
 // transposes track $tn by $dn half tone steps
 //---------------------------------------------------------------
-    function transposeTrack($tn, $dn) {
+    function transposeTrack($tn, $dn): void
+    {
         $track = $this->tracks[$tn];
         $mc = count($track);
 
@@ -252,11 +253,11 @@ class Midi
 //---------------------------------------------------------------
 // import whole MIDI song as text (mf2t-format)
 //---------------------------------------------------------------
-    function importTxt($txt)
+    function importTxt($txt): void
     {
         $txt = trim($txt);
         // make unix text format
-        if (strpos($txt, "\r") !== false && strpos($txt, "\n") === false) // MAC
+        if (str_contains($txt, "\r") && !str_contains($txt, "\n")) // MAC
             $txt = str_replace("\r", "\n", $txt);
         else // PC?
             $txt = str_replace("\r", '', $txt);
@@ -290,11 +291,11 @@ class Midi
 //---------------------------------------------------------------
 // imports track as text (mf2t-format)
 //---------------------------------------------------------------
-    function importTrackTxt($txt, $tn)
+    function importTrackTxt($txt, $tn): void
     {
         $txt = trim($txt);
         // make unix text format
-        if (strpos($txt, "\r") !== false && strpos($txt, "\n") === false) // MAC
+        if (str_contains($txt, "\r") && !str_contains($txt, "\n")) // MAC
             $txt = str_replace("\r", "\n", $txt);
         else // maybe PC, 0D 0A?
             $txt = str_replace("\r", '', $txt);
@@ -309,7 +310,7 @@ class Midi
             $track = $this->_delta2Absolute($track);
         }
 
-        $tn = isset($tn) ? $tn : count($this->tracks);
+        $tn = $tn ?? count($this->tracks);
         $this->tracks[$tn] = $track;
         if ($tn == 0) $this->_findTempo();
     }
@@ -363,7 +364,7 @@ class Midi
         $xml = "<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>
 <!DOCTYPE MIDIFile PUBLIC
   \"-//Recordare//DTD MusicXML 0.9 MIDI//EN\"
-  \"http://www.musicxml.org/dtds/midixml.dtd\">
+  \"https://www.musicxml.org/dtds/midixml.dtd\">
 <MIDIFile>
 <Format>$type</Format>
 <TrackCount>$tc</TrackCount>
@@ -400,7 +401,7 @@ class Midi
                         $ch = isset($args['ch']) ? (int)$args['ch'] : 1;
                         $n  = isset($args['n'])  ? (int)$args['n']  : 0;
                         $v  = isset($args['v'])  ? (int)$args['v']  : 0;
-                        $xml .= "<Note{$msg[1]} Channel=\"$ch\" Note=\"$n\" Velocity=\"$v\"/>\n";
+                        $xml .= "<Note$msg[1] Channel=\"$ch\" Note=\"$n\" Velocity=\"$v\"/>\n";
                         break;
 
                     case 'PoPr':
@@ -434,7 +435,7 @@ class Midi
                         break;
 
                     case 'Seqnr':
-                        $xml .= "<SequenceNumber Value=\"{$msg[2]}\"/>\n";
+                        $xml .= "<SequenceNumber Value=\"$msg[2]\"/>\n";
                         break;
 
                     case 'Meta':
@@ -454,26 +455,26 @@ class Midi
                             if ($mtype == 'TrkEnd')
                                 $xml .= "<EndOfTrack/>\n";
                             elseif ($mtype == '0x20' || $mtype == '0x21') // ChannelPrefix ???
-                                $xml .= "<MIDIChannelPrefix Value=\"{$msg[3]}\"/>\n";
+                                $xml .= "<MIDIChannelPrefix Value=\"$msg[3]\"/>\n";
                         }
                         break;
 
                     case 'Tempo':
-                        $xml .= "<SetTempo Value=\"{$msg[2]}\"/>\n";
+                        $xml .= "<SetTempo Value=\"$msg[2]\"/>\n";
                         break;
 
                     case 'SMPTE':
-                        $xml .= "<SMPTEOffset TimeCodeType=\"1\" Hour=\"{$msg[2]}\" Minute=\"{$msg[3]}\" Second=\"{$msg[4]}\" Frame=\"{$msg[5]}\" FractionalFrame=\"{$msg[6]}\"/>\n"; //TimeCodeType???
+                        $xml .= "<SMPTEOffset TimeCodeType=\"1\" Hour=\"$msg[2]\" Minute=\"$msg[3]\" Second=\"$msg[4]\" Frame=\"$msg[5]\" FractionalFrame=\"$msg[6]\"/>\n"; //TimeCodeType???
                         break;
 
                     case 'TimeSig': // LogDenum???
                         $ts = explode('/', $msg[2]);
-                        $xml .= "<TimeSignature Numerator=\"{$ts[0]}\" LogDenominator=\"" . log($ts[1]) / log(2) . "\" MIDIClocksPerMetronomeClick=\"{$msg[3]}\" ThirtySecondsPer24Clocks=\"{$msg[4]}\"/>\n";
+                        $xml .= "<TimeSignature Numerator=\"$ts[0]\" LogDenominator=\"" . log($ts[1]) / log(2) . "\" MIDIClocksPerMetronomeClick=\"$msg[3]\" ThirtySecondsPer24Clocks=\"$msg[4]\"/>\n";
                         break;
 
                     case 'KeySig':
                         $mode = ($msg[3] == 'major') ? 0 : 1;
-                        $xml .= "<KeySignature Fifths=\"{$msg[2]}\" Mode=\"$mode\"/>\n"; // ???
+                        $xml .= "<KeySignature Fifths=\"$msg[2]\" Mode=\"$mode\"/>\n"; // ???
                         break;
 
                     case 'SeqSpec':
@@ -515,16 +516,15 @@ class Midi
 // import MIDI XML representation
 // (so far only a subset of http://www.musicxml.org/dtds/midixml.dtd (v0.8), see documentation)
 //---------------------------------------------------------------
-    function importXml($xmlStr){
+    function importXml($xmlStr): void
+    {
         $this->evt = array();
         $this->atr = array();
         $this->dat = '';
         $this->open();
 
-        // Maak de parser
         $this->xml_parser = xml_parser_create("ISO-8859-1");
 
-        // ✅ Geen xml_set_object meer; gebruik directe callables
         xml_set_element_handler(
             $this->xml_parser,
             array($this, '_startElement'),
@@ -551,14 +551,14 @@ class Midi
 // imports Standard MIDI File (typ 0 or 1) (and RMID)
 // (if optional parameter $tn set, only track $tn is imported)
 //---------------------------------------------------------------
-    function importMid($smf_path)
+    function importMid($smf_path): void
     {
         $SMF = fopen($smf_path, "rb"); // Standard MIDI File, typ 0 or 1
         $song = fread($SMF, filesize($smf_path));
         fclose($SMF);
         if (strpos($song, 'MThd') > 0) $song = substr($song, strpos($song, 'MThd'));//get rid of RMID header
         $header = substr($song, 0, 14);
-        if (substr($header, 0, 8) != "MThd\0\0\0\6") $this->_err('wrong MIDI-header');
+        if (!str_starts_with($header, "MThd\0\0\0\6")) $this->_err('wrong MIDI-header');
         $type = ord($header[9]);
         if ($type > 1) $this->_err('only SMF Typ 0 and 1 supported');
         //$trackCnt = ord($header[10])*256 + ord($header[11]); //ignore
@@ -582,7 +582,7 @@ class Midi
 //---------------------------------------------------------------
 // returns binary MIDI string
 //---------------------------------------------------------------
-    function getMid()
+    function getMid(): string
     {
         $tracks = $this->tracks;
         $tc = count($tracks);
@@ -628,46 +628,13 @@ class Midi
 //---------------------------------------------------------------
 // saves MIDI song as Standard MIDI File
 //---------------------------------------------------------------
-    function saveMidFile($mid_path, $chmod = false)
+    function saveMidFile($mid_path, $chmod = false): void
     {
         if (count($this->tracks) < 1) $this->_err('MIDI song has no tracks');
         $SMF = fopen($mid_path, "wb"); // SMF
         fwrite($SMF, $this->getMid());
         fclose($SMF);
         if ($chmod !== false) @chmod($mid_path, $chmod);
-    }
-
-//---------------------------------------------------------------
-// embeds Standard MIDI File (according to template)
-//---------------------------------------------------------------
-    function playMidFile($file, $visible = true, $autostart = true, $loop = true, $player = 'default')
-    {
-        include('player/' . $player . '.tpl.php');
-    }
-
-//---------------------------------------------------------------
-// starts download of Standard MIDI File, either from memory or from the server's filesystem
-// ATTENTION: order of params swapped, so $file can be omitted to directly start download
-//---------------------------------------------------------------
-    function downloadMidFile($output, $file = false)
-    {
-        ob_start("ob_gzhandler"); // for compressed output...
-
-        //$mime_type = 'audio/midi';
-        $mime_type = 'application/octetstream'; // force download
-
-        header('Content-Type: ' . $mime_type);
-        header('Expires: ' . gmdate('D, d M Y H:i:s') . ' GMT');
-        header('Content-Disposition: attachment; filename="' . $output . '"');
-        header('Pragma: no-cache');
-
-        if ($file) {
-            $d = fopen($file, "rb");
-            fpassthru($d);
-            @fclose($d);
-        } else
-            echo $this->getMid();
-        exit();
     }
 
 //***************************************************************
@@ -677,7 +644,7 @@ class Midi
 //---------------------------------------------------------------
 // returns list of standard instrument names
 //---------------------------------------------------------------
-    function getInstrumentList()
+    function getInstrumentList(): array
     {
         return array('Piano', 'Bright Piano', 'Electric Grand', 'Honky Tonk Piano', 'Electric Piano 1', 'Electric Piano 2', 'Harpsichord', 'Clavinet', 'Celesta', 'Glockenspiel', 'Music Box', 'Vibraphone', 'Marimba', 'Xylophone', 'Tubular Bell', 'Dulcimer', 'Hammond Organ', 'Perc Organ', 'Rock Organ', 'Church Organ', 'Reed Organ', 'Accordion', 'Harmonica', 'Tango Accordion', 'Nylon Str Guitar', 'Steel String Guitar', 'Jazz Electric Gtr', 'Clean Guitar', 'Muted Guitar', 'Overdrive Guitar', 'Distortion Guitar', 'Guitar Harmonics', 'Acoustic Bass', 'Fingered Bass', 'Picked Bass', 'Fretless Bass', 'Slap Bass 1', 'Slap Bass 2', 'Syn Bass 1', 'Syn Bass 2', 'Violin', 'Viola', 'Cello', 'Contrabass', 'Tremolo Strings', 'Pizzicato Strings', 'Orchestral Harp', 'Timpani', 'Ensemble Strings', 'Slow Strings', 'Synth Strings 1', 'Synth Strings 2', 'Choir Aahs', 'Voice Oohs', 'Syn Choir', 'Orchestra Hit', 'Trumpet', 'Trombone', 'Tuba', 'Muted Trumpet', 'French Horn', 'Brass Ensemble', 'Syn Brass 1', 'Syn Brass 2', 'Soprano Sax', 'Alto Sax', 'Tenor Sax', 'Baritone Sax', 'Oboe', 'English Horn', 'Bassoon', 'Clarinet', 'Piccolo', 'Flute', 'Recorder', 'Pan Flute', 'Bottle Blow', 'Shakuhachi', 'Whistle', 'Ocarina', 'Syn Square Wave', 'Syn Saw Wave', 'Syn Calliope', 'Syn Chiff', 'Syn Charang', 'Syn Voice', 'Syn Fifths Saw', 'Syn Brass and Lead', 'Fantasia', 'Warm Pad', 'Polysynth', 'Space Vox', 'Bowed Glass', 'Metal Pad', 'Halo Pad', 'Sweep Pad', 'Ice Rain', 'Soundtrack', 'Crystal', 'Atmosphere', 'Brightness', 'Goblins', 'Echo Drops', 'Sci Fi', 'Sitar', 'Banjo', 'Shamisen', 'Koto', 'Kalimba', 'Bag Pipe', 'Fiddle', 'Shanai', 'Tinkle Bell', 'Agogo', 'Steel Drums', 'Woodblock', 'Taiko Drum', 'Melodic Tom', 'Syn Drum', 'Reverse Cymbal', 'Guitar Fret Noise', 'Breath Noise', 'Seashore', 'Bird', 'Telephone', 'Helicopter', 'Applause', 'Gunshot');
     }
@@ -685,7 +652,7 @@ class Midi
 //---------------------------------------------------------------
 // returns list of drumset instrument names
 //---------------------------------------------------------------
-    function getDrumset()
+    function getDrumset(): array
     {
         return array(
             35 => 'Acoustic Bass Drum',
@@ -741,7 +708,7 @@ class Midi
 //---------------------------------------------------------------
 // returns list of standard drum kit names
 //---------------------------------------------------------------
-    function getDrumkitList()
+    function getDrumkitList(): array
     {
         return array(
             1 => 'Dry',
@@ -758,7 +725,7 @@ class Midi
 //---------------------------------------------------------------
 // returns list of note names
 //---------------------------------------------------------------
-    function getNoteList()
+    function getNoteList(): array
     {
         //note 69 (A6) = A440
         //note 60 (C6) = Middle C
@@ -787,7 +754,7 @@ class Midi
 //---------------------------------------------------------------
 // returns time code of message string
 //---------------------------------------------------------------
-    function _getTime($msgStr)
+    function _getTime($msgStr): int
     {
         return (int)strtok($msgStr, ' ');
     }
@@ -797,7 +764,8 @@ class Midi
 // e.g. ["100", "On", "ch=1", "n=60", "v=100"]
 //      => ["ch" => 1, "n" => 60, "v" => 100]
 //---------------------------------------------------------------
-    function _parseEventArgs(array $msg, $startIndex = 2) {
+    function _parseEventArgs(array $msg, $startIndex = 2): array
+    {
         $args = array();
         $mc = count($msg);
 
@@ -974,7 +942,7 @@ class Midi
 //---------------------------------------------------------------
 // converts binary track string to track (list of msg strings)
 //---------------------------------------------------------------
-    function _parseTrack($binStr, $tn)
+    function _parseTrack($binStr, $tn): array
     {
         $trackLen = strlen($binStr);
         $p = 4;
@@ -1224,7 +1192,7 @@ class Midi
 //---------------------------------------------------------------
 // search track 0 for set tempo msg
 //---------------------------------------------------------------
-    function _findTempo()
+    function _findTempo(): void
     {
         $track = $this->tracks[0];
         $mc = count($track);
@@ -1242,7 +1210,7 @@ class Midi
 //---------------------------------------------------------------
 // XML PARSING CALLBACKS
 //---------------------------------------------------------------
-    function _startElement($parser, $name, $attrs)
+    function _startElement($parser, $name, $attrs): void
     {
 
         switch ($name) {
@@ -1270,23 +1238,21 @@ class Midi
         }
     }
 
-    function _endElement($parser, $name)
+    function _endElement($parser, $name): void
     {
         switch ($name) {
+            case 'TRACKCOUNT':
+            case 'TRACK':
             case 'MIDIFILE':
                 break;
             case 'FORMAT':
                 $this->type = (int)$this->dat;
-                break;
-            case 'TRACKCOUNT':
                 break;
             case 'TICKSPERBEAT':
                 $this->timebase = (int)$this->dat;
                 break;
             case 'TIMESTAMPTYPE':
                 $this->ttype = $this->dat;//DELTA or ABSOLUTE
-                break;
-            case 'TRACK':
                 break;
 
             case 'DELTA':
@@ -1401,7 +1367,7 @@ class Midi
         }
     }
 
-    function _chData($parser, $data)
+    function _chData($parser, $data): void
     {
         $this->dat = (trim($data) == '') ? '' : $data;//???
     }
@@ -1413,7 +1379,7 @@ class Midi
 //---------------------------------------------------------------
 // hexstr to binstr
 //---------------------------------------------------------------
-    function _hex2bin($hex_str)
+    function _hex2bin($hex_str): string
     {
         $bin_str = '';
         for ($i = 0; $i < strlen($hex_str); $i += 2) {
@@ -1425,7 +1391,7 @@ class Midi
 //---------------------------------------------------------------
 // int to bytes (length $len)
 //---------------------------------------------------------------
-    function _getBytes($n, $len)
+    function _getBytes($n, $len): string
     {
         $str = '';
         for ($i = $len - 1; $i >= 0; $i--) {
@@ -1437,7 +1403,7 @@ class Midi
 //---------------------------------------------------------------
 // variable length string to int (+repositioning)
 //---------------------------------------------------------------
-    function _readVarLen($str, &$pos)
+    function _readVarLen($str, &$pos): int
     {
         if (($value = ord($str[$pos++])) & 0x80) {
             $value &= 0x7F;
@@ -1451,7 +1417,7 @@ class Midi
 //---------------------------------------------------------------
 // int to variable length string
 //---------------------------------------------------------------
-    function _writeVarLen($value)
+    function _writeVarLen($value): string
     {
         $buf = $value & 0x7F;
         $str = '';
@@ -1487,7 +1453,7 @@ class Midi
 //---------------------------------------------------------------
 // error message
 //---------------------------------------------------------------
-    function _err($str)
+    function _err($str): void
     {
         if ($this->throwFlag)
             eval('throw new Exception($str);');
@@ -1496,5 +1462,3 @@ class Midi
     }
 
 } // END OF CLASS
-
-?>
