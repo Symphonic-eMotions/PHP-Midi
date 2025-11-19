@@ -1,5 +1,8 @@
 # PHP-Midi
 
+Terminal; Test local: php -S localhost:8001
+Browser: http://127.0.0.1:8001/midi.php
+
 A modernized and extended fork of the original PHP MIDI library created by  
 **Valentin Schmidt** (http://valentin.dasdeck.com/php/midi/)  
 Forked at version **1.7.8**, now updated for **PHP 8.1+**, with strict typing, PSR-12 compatibility, Composer support, and several helper classes.
