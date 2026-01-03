@@ -21,7 +21,7 @@ class Midi
     var $tempo;           //tempo as integer (0 for unknown)
     var $tempoMsgNum;     //position of tempo event in track 0
     var $type;            // SMF type 0 or 1 (0=only a single track)
-    var bool $throwFlag;       // wether to throw exception on error (only PHP5+)
+    public bool $throwFlag = true;   // wether to throw exception on error (only PHP5+)
 
     // XML parsing state (added to avoid dynamic properties deprecation on PHP 8.2+)
     var $evt = array();
@@ -39,9 +39,19 @@ class Midi
 //---------------------------------------------------------------
 // CONSTRUCTOR
 //---------------------------------------------------------------
-    function Midi()
+    // Modern PHP constructor
+    public function __construct()
     {
-        $this->throwFlag = ((int)phpversion() >= 5);
+        // In PHP 8 is exceptions gooien altijd ok.
+        // Als je per se wilt blijven hangen aan phpversion logic, kan dat ook,
+        // maar praktisch gezien: true is prima.
+        $this->throwFlag = true;
+    }
+
+    // Legacy constructor alias (backwards compat)
+    public function Midi()
+    {
+        $this->__construct();
     }
 
 //---------------------------------------------------------------
@@ -1455,10 +1465,12 @@ class Midi
 //---------------------------------------------------------------
     function _err($str): void
     {
-        if ($this->throwFlag)
-            eval('throw new Exception($str);');
-        else
-            die('>>> ' . $str . '!');
+        if ($this->throwFlag) {
+            // was: eval('throw new Exception($str);');
+            throw new \Exception($str);
+        }
+
+        die('>>> ' . $str . '!');
     }
 
 } // END OF CLASS
