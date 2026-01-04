@@ -899,6 +899,27 @@ class Midi
                         return "\xFF\x21\x01$v";
 
                     default:
+                        // Generic support for "Meta 0xNN ..." lines (unknown meta events)
+                        if (is_string($type) && str_starts_with($type, '0x')) {
+
+                            $metaByte = hexdec(substr($type, 2)) & 0xFF;
+
+                            // Extract all hex byte tokens after the meta code from the original line
+                            // Example line: '123 Meta 0x08  50 72 6F 67 ...'
+                            $pos = strpos($line, $type);
+                            $tail = $pos !== false ? substr($line, $pos + strlen($type)) : '';
+
+                            preg_match_all('/\b[0-9a-fA-F]{2}\b/', $tail, $m);
+                            $data = '';
+
+                            foreach (($m[0] ?? []) as $hx) {
+                                $data .= chr(hexdec($hx));
+                            }
+
+                            $len = $this->_writeVarLen(strlen($data)); // variable length
+                            return "\xFF" . chr($metaByte) . $len . $data;
+                        }
+
                         $this->_err("unknown meta event: $type");
                         exit();
                 }
