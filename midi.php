@@ -8,6 +8,62 @@ require __DIR__ . '/src/midi_volume.class.php';
 
 echo "<pre>";
 
+/**
+ * ============================================================
+ * NIEUW: Constructor/throwFlag sanity checks + exception pad test
+ * ============================================================
+ */
+
+echo "== NIEUW: throwFlag / constructor sanity ==\n";
+
+// 0A) Midi: throwFlag moet direct beschikbaar zijn (geen typed-property fatal)
+try {
+    $mSanity = new Midi();
+    echo "Midi::throwFlag (direct na new Midi()): ";
+    var_export($mSanity->throwFlag);
+    echo "\n";
+} catch (Throwable $e) {
+    echo "❌ Sanity check faalde (Midi): " . $e::class . " - " . $e->getMessage() . "\n";
+    exit(1);
+}
+
+// 0B) MidiDuration (inherits): idem
+try {
+    $dSanity = new MidiDuration();
+    echo "MidiDuration::throwFlag (direct na new MidiDuration()): ";
+    var_export($dSanity->throwFlag);
+    echo "\n\n";
+} catch (Throwable $e) {
+    echo "❌ Sanity check faalde (MidiDuration): " . $e::class . " - " . $e->getMessage() . "\n";
+    exit(1);
+}
+
+// 0C) Bewust error-pad triggeren: importeer een niet-MIDI bestand (of lege tmp)
+// Verwachting: nette Exception uit _err(), GEEN fatal typed-property error.
+echo "== NIEUW: error handling pad (verwacht Exception, geen fatal) ==\n";
+
+$tmpBad = tempnam(sys_get_temp_dir(), 'midi_bad_');
+if ($tmpBad === false) {
+    echo "❌ Kon geen tijdelijk bestand maken.\n";
+    exit(1);
+}
+
+// Schrijf expres “geen MIDI header”
+file_put_contents($tmpBad, "NOT_A_MIDI_FILE");
+
+try {
+    $mBad = new Midi();
+    $mBad->importMid($tmpBad);
+    echo "⚠️ Onverwacht: importMid() op corrupte input gaf geen error.\n";
+} catch (Throwable $e) {
+    echo "✅ Exception gevangen zoals verwacht:\n";
+    echo "   Type: " . $e::class . "\n";
+    echo "   Msg : " . $e->getMessage() . "\n";
+}
+@unlink($tmpBad);
+
+echo "\n";
+
 // 1. Basis: een bestaand MIDI-bestand inladen
 $sourceMid = __DIR__ . '/moon-left.mid';
 if (!file_exists($sourceMid)) {
@@ -103,14 +159,14 @@ $txt = $midi->getTxt(0); // absolute tijden
 echo "Volledige song als tekst (eerste 10 regels):\n";
 $lines = explode("\n", $txt);
 foreach (array_slice($lines, 0, 10) as $l) {
-    echo $l . "\n";
+    echo htmlspecialchars($l) . "\n";
 }
 
 $track0Txt = $midi->getTrackTxt(0, 0);
 echo "\nTrack 0 tekst (eerste 10 regels):\n";
 $tLines = explode("\n", $track0Txt);
 foreach (array_slice($tLines, 0, 10) as $l) {
-    echo $l . "\n";
+    echo htmlspecialchars($l) . "\n";
 }
 
 // importTxt op nieuwe instantie

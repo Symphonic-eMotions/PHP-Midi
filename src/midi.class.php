@@ -99,9 +99,13 @@ class Midi
 //---------------------------------------------------------------
 // returns bpm corresponding to tempo
 //---------------------------------------------------------------
-    function getBpm(): int
+    function getBpm(): float
     {
-        return ($this->tempo != 0) ? (int)(60000000 / $this->tempo) : 0;
+        if ($this->tempo == 0) {
+            return 0.0;
+        }
+
+        return round(60000000 / $this->tempo, 2);
     }
 
 //---------------------------------------------------------------
@@ -553,8 +557,6 @@ class Midi
                 xml_get_current_line_number($this->xml_parser)
             ));
         }
-
-        xml_parser_free($this->xml_parser);
     }
 
 //---------------------------------------------------------------
@@ -916,7 +918,9 @@ class Midi
             case 'TimeSig': // 0x58
                 $zt = explode('/',$msg[2]);
                 $z  = chr($zt[0]);
-                $t  = chr(log($zt[1])/log(2));
+                $t = (int) round(log($zt[1]) / log(2));
+                $t = max(0, min(255, $t));
+                $t = chr($t);
                 $mc = chr($msg[3]);
                 $c  = chr($msg[4]);
                 return "\xFF\x58\x04$z$t$mc$c";
@@ -1405,7 +1409,7 @@ class Midi
     {
         $str = '';
         for ($i = $len - 1; $i >= 0; $i--) {
-            $str .= chr(floor($n / pow(256, $i)));
+            $str .= chr(((int) floor($n / pow(256, $i))) & 0xFF);
         }
         return $str;
     }
